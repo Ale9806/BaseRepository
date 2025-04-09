@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""writers.py in src/biovlmdata/fileio/image."""
+"""writers.py in src/base_repo/fileio/image."""
 # flake8: noqa: B950
 import re
 from pathlib import Path
@@ -10,7 +10,7 @@ import cv2
 from loguru import logger
 from PIL.PngImagePlugin import PngInfo
 
-from biovlmdata.processing import timestamp
+from base_repo.processing import timestamp
 
 
 cv2.setUseOptimized(True)
@@ -20,7 +20,7 @@ re_groups = re.compile(r"\((.*?)\)")
 
 # regex patterns for filename parsing
 REGEX_COMPILED = {
-    "biovlmdata": {
+    "base_repo": {
         "fileparts": r"(?P<index>\d+)_(?P<uuid>[a-f0-9]{8})_(?P<patient_id>[a-zA-Z0-9\-]+)_split-(?P<split>[a-z]+)_(?P<label_name>[a-z0-9\-]+)\.(?P<ext>png|jpg|jpeg|gif|bmp|tiff|tif)",
         "misc_info": r"",
     },
@@ -50,7 +50,7 @@ REGEX_COMPILED = {
 def create_png_metadata(
     image_file: Union[str, Path],
     data: dict,
-    filename_regex: Optional[str] = "biovlmdata",
+    filename_regex: Optional[str] = "base_repo",
     ignore_case: Optional[bool] = False,
 ) -> PngInfo:
     """Create PNG metadata with the given data and optional filename parsing.

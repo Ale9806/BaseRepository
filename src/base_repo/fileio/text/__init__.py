@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""__init__.py in src/biovlmdata/fileio/text."""
+"""__init__.py in src/base_repo/fileio/text."""
 
 import re
 from pathlib import Path

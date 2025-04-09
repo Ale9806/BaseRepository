@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""readers.py in src/biovlmdata/fileio/dataframe."""
+"""readers.py in src/base_repo/fileio/dataframe."""
 import os
 from pathlib import Path
 from typing import Union
@@ -8,8 +8,8 @@ import pandas as pd
 from loguru import logger
 from pyarrow import feather
 
-from biovlmdata.fileio.text import is_empty_file
-from biovlmdata.fileio.text import valid_file_ext
+from base_repo.fileio.text import is_empty_file
+from base_repo.fileio.text import valid_file_ext
 
 
 def df_loader(filepath: Union[str, Path, os.PathLike]) -> pd.DataFrame:

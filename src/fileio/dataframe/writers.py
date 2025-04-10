@@ -32,6 +32,11 @@ def save_df_to_file(df: pd.DataFrame, output_file: Union[Path, str]) -> None:
     - For `.feather`, this uses `pyarrow.feather.write_feather`.
     - Logging is used to record the success or failure of the operation.
     """
+
+
+
+    output_file = Path(output_file)
+    
     if output_file.suffix == ".csv":
         df.to_csv(output_file, index=False)
     elif output_file.suffix == ".parquet":

@@ -1,0 +1,5 @@
+Device,Type,ICC_Profile,Color_Space
+Monitor1,Display,sRGB IEC61966-2.1,sRGB
+Printer1,Printer,AdobeRGB1998,AdobeRGB
+Camera1,Camera,ProPhotoRGB,ProPhoto
+Scanner1,Scanner,sRGB IEC61966-2.1,sRGB

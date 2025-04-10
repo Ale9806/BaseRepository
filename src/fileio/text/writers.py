@@ -14,9 +14,9 @@ import yaml
 from loguru import logger
 from pyarrow import feather
 
-from base_repo.fileio.text import is_none_or_empty
-from base_repo.fileio.text import make_dir
-from base_repo.fileio.text import valid_file_ext
+from fileio.text import is_none_or_empty
+from fileio.text import make_dir
+from fileio.text import valid_file_ext
 
 
 def yaml_writer(data: dict, file_path: Union[str, Path]) -> None:

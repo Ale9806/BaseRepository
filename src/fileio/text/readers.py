@@ -12,8 +12,8 @@ import ujson as json
 import yaml
 from loguru import logger
 
-from base_repo.fileio.text import is_empty_file
-from base_repo.fileio.text import valid_file_ext
+from fileio.text import is_empty_file
+from fileio.text import valid_file_ext
 
 
 def json_loader(

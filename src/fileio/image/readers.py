@@ -14,8 +14,8 @@ import PIL.ImageFile
 from loguru import logger
 from PIL.PngImagePlugin import PngInfo  # noqa: F401
 
-from base_repo.fileio.text import is_empty_file
-from base_repo.processing.image.color_icc import build_apply_icc
+from fileio.text import is_empty_file
+from processing.image.color_icc import build_apply_icc
 
 
 # PIL settings

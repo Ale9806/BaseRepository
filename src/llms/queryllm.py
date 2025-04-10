@@ -3,6 +3,8 @@ import re
 import time
 import logging
 import hashlib
+import base64
+import requests 
 import subprocess
 
 from langchain.chat_models    import ChatAnthropic
@@ -12,6 +14,14 @@ from langchain_google_genai   import ChatGoogleGenerativeAI
 from langchain_together       import ChatTogether
 from langchain_community.llms import VLLM
 
+from langchain_core.messages import HumanMessage,SystemMessage
+from langchain.globals       import set_llm_cache
+from langchain.cache          import SQLiteCache
+
+
+
+
+    
 
 # Set up logging configuration
 def setup_logger():
@@ -50,15 +60,14 @@ class QueryLLM:
     
     
     def __init__(self, 
-                 provider: str, 
-                 model:    str, 
-                 api_key:  str=None, 
+                 provider:str, 
+                 model:str, 
+                 api_key:str=None, 
                  parameters:dict={"temperature":0,"max_tokens":None,"timeout":None,"max_retries":2},
-                 delay:int  = None,
-                 cache:bool = True,
-                 use_cache:bool     = True,
-                 enable_logger:bool = False,
-                 host_vllm_manually:bool = False):
+                 delay:int= None,
+                 cache:str=None,
+                 enable_logger:bool=False,
+                 host_vllm_manually:bool=False):
         """
         Initializes the QueryLLM instance, validating provider and setting up the necessary configurations.
 
@@ -68,7 +77,7 @@ class QueryLLM:
             model (str): Model name for querying.
             parameters (dict): Additional parameters like temperature, max_tokens.
             delay (int): Optional delay before making a request.
-            cache (bool): Whether to cache responses.
+            cache (str): Name of Cache to store info.
             use_cache (bool): Whether to use cache during requests.
             enable_logger (bool): Enable logging for tracking operations.
         """
@@ -84,19 +93,20 @@ class QueryLLM:
         self.delay      = delay
         self.parameters = parameters
         self.cache      = cache
-        self.use_cache  = use_cache
-        self.enable_logger = enable_logger
-        self.inference_server_url = inference_server_url
+        self.enable_logger         = enable_logger
+        self.inference_server_url  = inference_server_url
         self.host_vllm_manually    = host_vllm_manually
-        if self.cache:
-            self.CACHE = {}
 
+        if ".db" not in self.cache:
+            self.cache =  self.cache + ".db"
+      
         if self.enable_logger:
             self.logger = setup_logger()
             self.logger.info(f"Initializing QueryLLM with provider: {provider}, model: {model}")
 
         self.init_api()
 
+    
     def init_api(self):
         """
         Initializes the API client based on the provider, setting the appropriate API key and model.
@@ -136,6 +146,16 @@ class QueryLLM:
             self.system_tag = "system"
             self.user_tag   = "human"
 
+        if self.cache:
+            set_llm_cache(SQLiteCache(database_path=self.cache))
+
+    def encode_image(self,image_path,add_tag:bool=True):
+        with open(image_path, "rb") as image_file:
+            image = base64.b64encode(image_file.read()).decode("utf-8")
+            if add_tag:
+                image = f"data:image/jpeg;base64,{image}"
+            return image
+    
     def init_vllm_server(self,delay:int=20)-> None:
         command = ["vllm", "serve", self.model]
         self.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -148,6 +168,7 @@ class QueryLLM:
         time.sleep(delay)
         print(f"finalized vLLM server  for model {self.model} with PID: {self.pid}")           
 
+    
     def set_key(self, key_name) -> None:
         """
         Sets the API key as an environment variable or uses the provided API key.
@@ -169,19 +190,7 @@ class QueryLLM:
         if self.enable_logger:
             self.logger.info(f"API key for {key_name} set successfully.")
 
-    def wrap_message(self, role: str, message: str):
-        """
-        Wraps a message with the specified role.
-
-        Args:
-            role (str): The role of the message sender (e.g., 'system', 'human').
-            message (str): The content of the message.
-
-        Returns:
-            tuple: A tuple containing the role and the message.
-        """
-        return (role, message)
-
+    
     def defualt_chat_wrap(self, messages: list[str]) -> list[str,str]:
         """
         Default wrapper for messages in a chat format (system and human).
@@ -192,9 +201,14 @@ class QueryLLM:
         Returns:
             list: Wrapped messages for system and user roles.
         """
-        wraped_messages = [
-            self.wrap_message(role=self.system_tag, message=messages[0]),
-            self.wrap_message(role=self.user_tag , message=messages[1])]
+        wraped_messages = []
+        for message in messages: 
+            if message["role"] == "system":
+                msg = SystemMessage(content=message["message"])
+            elif message["role"] == "user":
+                msg = HumanMessage(content=message["message"])
+            wraped_messages.append(msg)
+
         return wraped_messages
 
     def query(self, messages: list) -> str:
@@ -214,36 +228,24 @@ class QueryLLM:
                 self.logger.info(f"Delaying for {self.delay} seconds...")
             time.sleep(self.delay)
 
-        message_hash: str = self.generate_unique_hash(" ".join([f"{role}: {message}" for role, message in messages]))
+        if self.provider in ["togetherai", "openai", "google", "anthropic"]:
+            response = dict(self.client.invoke(messages))
 
-        if self.cache and self.use_cache:
-            if self.enable_logger:
-                self.logger.info(f"Checking cache for message hash: {message_hash}")
-            response = self.CACHE.get(message_hash, None)
-            if response:
-                response = response.get("response", None)
-
-        if self.cache == False  or self.use_cache == False or response == None:
-            if self.enable_logger:
-                self.logger.info(f"Cache miss, querying the provider...")
-            if self.provider in ["togetherai", "openai", "google", "anthropic"]:
-                response = dict(self.client.invoke(messages))
-
-            if self.provider == "vllm":
-                response = dict(self.client.invoke(messages,model=self.model))
-
-
-            if self.cache:
-                self.CACHE[message_hash] = {"query": messages, "response": response}
-
-            if self.enable_logger:
-                self.logger.info(f"Response generated and cached.")
+        if self.provider == "vllm":
+            response = dict(self.client.invoke(messages,model=self.model))
 
         return response
 
-    def simple_query(self,system_prompt:str,human_message:str,return_dict:bool=False):
-        messages  = self.defualt_chat_wrap([system_prompt,human_message])
+    def simple_query(self,human_message:str,system_prompt:str=None,return_dict:bool=False):
+
+        messages_list = []
+        if system_prompt:
+            messages_list.append({"role":"system","message":system_prompt})
+        messages_list.append({"role":"user","message":human_message} )
+            
+        messages  = self.defualt_chat_wrap(messages_list)
         response  = self.query(messages)
+        #import pdb;pdb.set_trace()
         if return_dict:
             return response
         else:

@@ -10,7 +10,8 @@ $ pip install base_repo
 
 ## Usage
 
-- TODO
+- To look for some qucik examples, please look under Notebooks
+  
 
 ## Contributing
 

@@ -10,7 +10,7 @@ $ pip install base_repo
 
 ## Usage
 
-- To look for some qucik examples, please look under Notebooks
+- To look for some quick examples, please look under Notebooks
   
 
 ## Contributing

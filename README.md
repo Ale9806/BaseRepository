@@ -5,7 +5,7 @@ A base repository for projects at MARVL
 ## Installation
 
 ```bash
-$ pip install base_repo
+No need to install, yet
 ```
 
 ## Usage
